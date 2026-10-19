@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body {
+      background-color: transparent;
+      display: flex;
+      justify-content: center;
+      padding: 10px;
+    }
+    .card {
+      background: #f7f7f5;
+      border: 1px solid #e9e9e7;
+      border-radius: 12px;
+      padding: 18px 22px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 14px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid #e3e2e0;
+    }
+    .title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #37352f;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .team-avg-badge {
+      font-size: 13px;
+      font-weight: 700;
+      background: #ffffff;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid #e3e2e0;
+      color: #2e75d6;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .member-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .member-row:last-child {
+      margin-bottom: 0;
+    }
+    .name-input {
+      width: 90px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #37352f;
+      background: transparent;
+      border: none;
+      border-bottom: 1px dashed transparent;
+      outline: none;
+      padding: 2px 0;
+    }
+    .name-input:hover, .name-input:focus {
+      border-bottom: 1px dashed #9b9a97;
+    }
+    .slider-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: transparent;
+    }
+    input[type=range]:focus { outline: none; }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 6px;
+      cursor: pointer;
+      background: #e3e2e0;
+      border-radius: 3px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      height: 18px;
+      width: 18px;
+      border-radius: 50%;
+      background: #2e75d6;
+      cursor: pointer;
+      -webkit-appearance: none;
+      margin-top: -6px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+      transition: transform 0.1s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+    .score-badge {
+      min-width: 65px;
+      text-align: right;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 4px;
+    }
+    .score-num {
+      width: 32px;
+      color: #2e75d6;
+    }
+    .score-emoji {
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div class="title">Nálada týmu po sprintu</div>
+      <div class="team-avg-badge">
+        <span>Průměr:</span>
+        <span id="avg-score">7.0</span>
+        <span id="avg-emoji">🙂</span>
+      </div>
+    </div>
+
+    <!-- 5 Team Member Rows -->
+    <div id="members-list"></div>
+  </div>
+
+  <script>
+    // Default team members (click the name directly in the widget to rename)
+    const members = [
+      { name: "Schod", defaultScore: 5 },
+      { name: "Marek", defaultScore: 5 },
+      { name: "Pepa",  defaultScore: 5 },
+      { name: "Tom", defaultScore: 5 },
+      { name: "Vojta",    defaultScore: 5 }
+    ];
+
+    const stateMap = {
+      1: { emoji: "🤯", color: "#e03e3e" },
+      2: { emoji: "😫", color: "#e03e3e" },
+      3: { emoji: "😕", color: "#d9730d" },
+      4: { emoji: "😮‍💨", color: "#d9730d" },
+      5: { emoji: "😐", color: "#dfab01" },
+      6: { emoji: "🙂", color: "#2e75d6" },
+      7: { emoji: "😊", color: "#2e75d6" },
+      8: { emoji: "💪", color: "#0f7b6c" },
+      9: { emoji: "🔥", color: "#0f7b6c" },
+      10:{ emoji: "🚀", color: "#0f7b6c" }
+    };
+
+    const container = document.getElementById("members-list");
+
+    members.forEach((m, idx) => {
+      const row = document.createElement("div");
+      row.className = "member-row";
+      row.innerHTML = `
+        <input class="name-input" value="${m.name}" title="Klikni pro změnu jména">
+        <div class="slider-container">
+          <input type="range" min="1" max="10" value="${m.defaultScore}" step="1" data-index="${idx}">
+        </div>
+        <div class="score-badge">
+          <span class="score-num" id="num-${idx}">${m.defaultScore}/10</span>
+          <span class="score-emoji" id="emoji-${idx}">🙂</span>
+        </div>
+      `;
+      container.appendChild(row);
+    });
+
+    const sliders = document.querySelectorAll("input[type=range]");
+
+    function updateRow(slider) {
+      const idx = slider.getAttribute("data-index");
+      const val = parseInt(slider.value, 10);
+      const conf = stateMap[val];
+
+      const numEl = document.getElementById(`num-${idx}`);
+      const emojiEl = document.getElementById(`emoji-${idx}`);
+
+      numEl.innerText = `${val}/10`;
+      numEl.style.color = conf.color;
+      emojiEl.innerText = conf.emoji;
+      
+      recalcAverage();
+    }
+
+    function recalcAverage() {
+      let sum = 0;
+      sliders.forEach(s => sum += parseInt(s.value, 10));
+      const avg = (sum / sliders.length).toFixed(1);
+      const rounded = Math.round(avg);
+
+      const avgScoreEl = document.getElementById("avg-score");
+      const avgEmojiEl = document.getElementById("avg-emoji");
+
+      avgScoreEl.innerText = avg;
+      avgScoreEl.style.color = stateMap[rounded].color;
+      avgEmojiEl.innerText = stateMap[rounded].emoji;
+    }
+
+    sliders.forEach(s => {
+      s.addEventListener("input", () => updateRow(s));
+      updateRow(s); // initialize
+    });
+  </script>
+</body>
+</html>
